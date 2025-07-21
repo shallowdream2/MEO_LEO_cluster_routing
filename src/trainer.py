@@ -117,51 +117,57 @@ class TrainingEnvironment:
             self.plot_training_results()
     
     def run_episode(self, agent: RLAgent, data_file: str, max_steps: int) -> Tuple[float, float, float]:
-        """
-        运行一个训练episode
-        
-        Returns:
-            (总奖励, 成功率, 平均路径长度)
-        """
+        """按照时间顺序运行一个训练episode"""
+
+        # 载入训练查询并按时间排序
+        with open(data_file, 'r') as f:
+            data = json.load(f)
+        train_queries = sorted(data.get('train_queries', []), key=lambda q: q['time'])
+
+        # 统计每个时间槽包含的请求数量（slot可以有多少个time）
+        slot_times = {}
+        for q in train_queries:
+            slot_times[q['time']] = slot_times.get(q['time'], 0) + 1
+        self.logger.debug(f"Slot time distribution: {slot_times}")
+
+        num_time_slots = data.get('num_train_slots', self.config.get('network.num_time_slots', 50))
+
         total_reward = 0.0
         successful_routes = 0
         total_routes = 0
         total_path_length = 0
-        
-        # 随机选择时间槽
-        num_time_slots = self.config.get('network.num_time_slots', 50)
-        time_slot = random.randint(0, num_time_slots - 1)
-        
-        # 加载环境
-        leos, meos, _ = load_complete_environment(time_slot, data_file)
-        
-        # 生成训练查询
-        num_queries = self.config.get('simulation.num_training_queries', 10)
-        
-        for _ in range(min(num_queries, max_steps)):
-            # 随机生成路由请求
-            src_id, dst_id = self.generate_random_route_request(leos)
-            
-            if src_id == dst_id:
-                continue
-                
+
+        current_time = 0
+
+        for query in train_queries:
+            if total_routes >= max_steps:
+                break
+
+            # 若当前时间落后于请求时间，则跳到该时间
+            if current_time < query['time']:
+                current_time = query['time']
+
+            src_id = query['src']
+            dst_id = query['dst']
             total_routes += 1
-            
-            # 执行路由
-            path, routing_stats = route_request_with_intelligent_edge_selection(src_id, dst_id, leos, meos, agent)
-            
-            # 计算奖励
+
+            # 执行带时间的路由与转发
+            path, routing_stats, leos, current_time = self.execute_request_with_time(
+                src_id, dst_id, current_time, agent, data_file, num_time_slots
+            )
+
             reward = self.calculate_reward(path, src_id, dst_id, leos, routing_stats)
             total_reward += reward
-            
+
             if routing_stats.get('success', False) and path and len(path) > 1:
                 successful_routes += 1
                 total_path_length += len(path)
-        
-        # 计算统计信息
+
+            # 一个请求完成后，current_time 已在 execute_request_with_time 中更新
+
         success_rate = successful_routes / total_routes if total_routes > 0 else 0.0
         avg_path_length = total_path_length / successful_routes if successful_routes > 0 else 0.0
-        
+
         return total_reward, success_rate, avg_path_length
     
     def generate_random_route_request(self, leos: Dict[int, LEOSatellite]) -> Tuple[int, int]:
@@ -171,7 +177,7 @@ class TrainingEnvironment:
         dst_id = random.choice(available_leos)
         return src_id, dst_id
     
-    def calculate_reward(self, path: List[int], src_id: int, dst_id: int, 
+    def calculate_reward(self, path: List[int], src_id: int, dst_id: int,
                         leos: Dict[int, LEOSatellite], routing_stats: Dict[str, any] = None) -> float:
         """计算路由奖励"""
         # 检查路由是否成功
@@ -200,6 +206,50 @@ class TrainingEnvironment:
             reward += load_balance_reward
 
         return reward
+
+    def execute_request_with_time(
+        self,
+        src_id: int,
+        dst_id: int,
+        start_time: int,
+        agent: RLAgent,
+        data_file: str,
+        num_time_slots: int,
+    ) -> Tuple[List[int], Dict[str, any], Dict[int, LEOSatellite], int]:
+        """根据时间逐跳执行路由请求"""
+
+        current_time = start_time
+        leos, meos, _ = load_complete_environment(current_time, data_file)
+        path, routing_stats = route_request_with_intelligent_edge_selection(src_id, dst_id, leos, meos, agent)
+
+        if not path or len(path) < 2:
+            routing_stats['success'] = False
+            return path, routing_stats, leos, current_time
+
+        index = 0
+
+        while index < len(path) - 1 and current_time < num_time_slots:
+            leos, meos, _ = load_complete_environment(current_time, data_file)
+            curr_node = path[index]
+            next_node = path[index + 1]
+
+            if next_node not in leos[curr_node].neighbors:
+                # 找不到预期邻居，重新生成路径
+                path, routing_stats = route_request_with_intelligent_edge_selection(curr_node, dst_id, leos, meos, agent)
+                index = 0
+                if not path or len(path) < 2:
+                    routing_stats['success'] = False
+                    return path, routing_stats, leos, current_time
+                continue
+
+            # 成功转发一个hop，消耗一个time
+            current_time += 1
+            index += 1
+
+        routing_stats['success'] = index == len(path) - 1
+        final_path = path[: index + 1]
+        leos, _, _ = load_complete_environment(min(current_time, num_time_slots - 1), data_file)
+        return final_path, routing_stats, leos, current_time
     
     def save_model(self, agent: RLAgent, episode: int):
         """保存模型"""
