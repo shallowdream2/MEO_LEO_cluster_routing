@@ -1,44 +1,42 @@
 """Example simulation of MEO controlled LEO routing."""
 import random
-from typing import Dict
+import argparse
+from .config import Config
+from .trainer import TrainingEnvironment
 
-from .satellites import LEOSatellite, MEOSatellite
-from .environment import find_nearest_available_leo
-from .rl_agent import RLAgent
-from .routing import route_request
-
-
-def build_example_network() -> tuple[Dict[int, LEOSatellite], Dict[int, MEOSatellite]]:
-    """Create a very small network for demonstration purposes."""
-    # Create MEO satellites
-    meos = {
-        1: MEOSatellite(id=1, latitude=0, longitude=0, altitude=20000, cluster_leos=[1, 2]),
-        2: MEOSatellite(id=2, latitude=10, longitude=10, altitude=20000, cluster_leos=[3, 4]),
-    }
-
-    # Create LEO satellites
-    leos = {
-        1: LEOSatellite(id=1, latitude=0, longitude=0, altitude=500, neighbors=[2], meo_id=1),
-        2: LEOSatellite(id=2, latitude=1, longitude=1, altitude=500, neighbors=[1], meo_id=1),
-        3: LEOSatellite(id=3, latitude=10, longitude=10, altitude=500, neighbors=[4], meo_id=2),
-        4: LEOSatellite(id=4, latitude=11, longitude=11, altitude=500, neighbors=[3], meo_id=2),
-    }
-    return leos, meos
 
 
 def main():
-    leos, meos = build_example_network()
-    agent = RLAgent()
-
-    ground_pos = (0.5, 0.5, 0)
-    load_threshold = 5
-    src_leo = find_nearest_available_leo(ground_pos, leos, load_threshold)
-
-    # Example: send request to LEO 4
-    path = route_request(src_leo.id, 4, leos, meos, agent)
-    print("Routing path:", path)
+    """主函数"""
+    parser = argparse.ArgumentParser(description='MEO-LEO集群路由系统')
+    parser.add_argument('--config', default='config.yaml', help='配置文件路径')
+    parser.add_argument('--mode', choices=['train', 'data'], default='train',
+                       help='运行模式:  train=训练, data=数据加载演示')
+    
+    args = parser.parse_args()
+    
+    # 加载配置
+    try:
+        config = Config(args.config)
+        print(f"已加载配置文件: {args.config}")
+    except FileNotFoundError:
+        print(f"配置文件不存在: {args.config}")
+        return
+    except Exception as e:
+        print(f"加载配置文件失败: {e}")
+        return
+    
+    # 设置随机种子
+    random_seed = config.get('simulation.random_seed', 42)
+    random.seed(random_seed)
+    print(f"随机种子: {random_seed}")
+    
+    # 根据模式执行不同功能
+    if args.mode == 'train':
+        print("=== 开始训练 ===")
+        trainer = TrainingEnvironment(config)
+        trainer.train()
 
 
 if __name__ == "__main__":
-    random.seed(0)
     main()

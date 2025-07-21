@@ -1,0 +1,87 @@
+{
+  "episode_rewards": [
+    29.6,
+    -37.2,
+    -53.2,
+    14.400000000000002,
+    21.700000000000003,
+    -42.2,
+    -18.299999999999997,
+    -80.0,
+    -4.899999999999999,
+    -34.2
+  ],
+  "episode_success_rates": [
+    0.625,
+    0.14285714285714285,
+    0.1111111111111111,
+    0.5,
+    0.5555555555555556,
+    0.2,
+    0.2857142857142857,
+    0.0,
+    0.4,
+    0.2222222222222222
+  ],
+  "episode_avg_path_lengths": [
+    3.8,
+    3.0,
+    3.0,
+    2.2,
+    3.6,
+    2.0,
+    2.5,
+    0.0,
+    3.25,
+    2.0
+  ],
+  "config": {
+    "data": {
+      "data_file": "data/data.json",
+      "meo_data_file": "data/meo_data.json",
+      "use_generated_data": false
+    },
+    "training": {
+      "num_episodes": 10,
+      "max_steps_per_episode": 100,
+      "batch_size": 32,
+      "save_interval": 10
+    },
+    "rl_agent": {
+      "learning_rate": 0.1,
+      "gamma": 0.9,
+      "epsilon": 0.1,
+      "epsilon_decay": 0.995,
+      "epsilon_min": 0.01
+    },
+    "environment": {
+      "load_threshold": 5,
+      "max_load_per_satellite": 10,
+      "reward_success": 10.0,
+      "reward_failure": -8.0,
+      "reward_hop": -0.1,
+      "reward_load_balance": 1.0,
+      "reward_connectivity_penalty": -5.0
+    },
+    "network": {
+      "num_satellites": 10,
+      "num_meo_satellites": 3,
+      "num_time_slots": 50,
+      "default_leo_altitude": 500.0
+    },
+    "simulation": {
+      "random_seed": 42,
+      "num_training_queries": 10,
+      "num_test_queries": 10,
+      "ground_stations": 5
+    },
+    "output": {
+      "log_level": "INFO",
+      "save_model": true,
+      "model_save_path": "models/",
+      "log_file": "logs/training.log",
+      "plot_results": true,
+      "results_path": "results/"
+    }
+  }
+}
