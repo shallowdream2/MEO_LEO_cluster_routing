@@ -30,12 +30,18 @@ environment:
   reward_hop: -0.1
   reward_load_balance: 1.0
   reward_connectivity_penalty: -5.0 # 新增：连通性差的惩罚
+  reward_routing_success: 1.0 # 路由成功的小奖励
+  reward_forwarding: 0.1 # 每次成功转发的小奖励
+  reward_connection_lost: -1.0 # 连接断开的惩罚
+  reward_timeout: -2.0 # 超时惩罚
+  reward_delay: -0.05 # 时延惩罚（每个时间单位）
 
 # 网络参数
 network:
   num_satellites: 10
   num_meo_satellites: 3
   num_time_slots: 50
+  time_per_slot: 20  # 每个slot持续的时间单位数
   default_leo_altitude: 500.0
 
 # 仿真参数

@@ -1,39 +1,39 @@
 {
   "episode_rewards": [
-    29.6,
-    -37.2,
-    -53.2,
-    14.400000000000002,
-    21.700000000000003,
-    -42.2,
-    -18.299999999999997,
-    -80.0,
-    -4.899999999999999,
-    -34.2
+    16.5,
+    16.6,
+    16.6,
+    16.6,
+    16.6,
+    16.6,
+    16.5,
+    16.6,
+    16.6,
+    16.4
   ],
   "episode_success_rates": [
-    0.625,
-    0.14285714285714285,
-    0.1111111111111111,
     0.5,
-    0.5555555555555556,
-    0.2,
-    0.2857142857142857,
-    0.0,
-    0.4,
-    0.2222222222222222
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5
   ],
   "episode_avg_path_lengths": [
-    3.8,
     3.0,
+    3.2,
+    3.2,
+    3.2,
+    3.2,
+    3.2,
     3.0,
-    2.2,
-    3.6,
-    2.0,
-    2.5,
-    0.0,
-    3.25,
-    2.0
+    3.2,
+    3.2,
+    2.8
   ],
   "config": {
     "data": {
@@ -61,12 +61,18 @@
       "reward_failure": -8.0,
       "reward_hop": -0.1,
       "reward_load_balance": 1.0,
-      "reward_connectivity_penalty": -5.0
+      "reward_connectivity_penalty": -5.0,
+      "reward_routing_success": 1.0,
+      "reward_forwarding": 0.1,
+      "reward_connection_lost": -1.0,
+      "reward_timeout": -2.0,
+      "reward_delay": -0.05
     },
     "network": {
       "num_satellites": 10,
       "num_meo_satellites": 3,
       "num_time_slots": 50,
+      "time_per_slot": 20,
       "default_leo_altitude": 500.0
     },
     "simulation": {
